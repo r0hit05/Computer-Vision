@@ -1,10 +1,12 @@
 #include <iostream>
+#include <thread>
+
 #include <opencv2/core.hpp>
 #include <opencv2/highgui.hpp>
 #include <opencv2/imgcodecs.hpp>
-#include "Timer.h"
-
 using namespace cv;
+
+#include "Timer.h"
 
 const int TIME = 1;
 void draw_coordinate(Mat& dst, double scalex = 1, double scaley = 1, double originx = -1, double originy = -1)
@@ -28,48 +30,6 @@ void draw_coordinate(Mat& dst, double scalex = 1, double scaley = 1, double orig
 		dst.at<uchar>(originy_screen, i) = 255;
 	}
 
-}
-
-void Mandelbrot(Mat& dst, int n, double scalex = 1, double scaley = 1, double originx = -1, double originy = -1)
-{
-	Timer time(TIME);
-	if(originx == -1)
-		originx = scalex / 2;
-	if(originy == -1)
-		originy = scaley / 2;
-
-	int rows = dst.rows, cols = dst.cols;
-	double xmul = scalex /(double)cols, ymul = scaley /(double)rows;
-
-
-
-	for (int i = 0; i < rows; i++)
-	{
-		uchar* p = dst.ptr<uchar>(i);
-		for (int j = 0; j < cols; j++)
-		{
-			//std::cout << "Checking coordinates: ";
-			double y0 = ((double)i*ymul) - originy;
-			double x0 = ((double)j*xmul) - originx;
-			//std::cout << x0 << " and " << y0 << std::endl;
-			//waitKey(0);
-			std::complex<double> z(0, 0);
-			std::complex<double> c(x0, y0);
-			int iteration = 0;
-			while (abs(z) < 2 && iteration != n)
-			{
-				z = z * z + c;
-				iteration++;
-			}
-
-			//if (n == iteration)
-			if (iteration == n)
-				p[j] = 0;
-			else
-				p[j] = (sqrt((double)iteration/n))*255;
-
-		}
-	}
 }
 
 
@@ -108,6 +68,9 @@ void Mandelbrot_fast(Mat& dst, int n, double scalex = 1, double scaley = 1, doub
 		else
 			dst.ptr<uchar>(i)[j] = (sqrt((double)iteration / n)) * 255;
 	}
+
+	std::cout << "Naive Implementation: ";
+	
 }
 
 void Mandelbrot_fast_threads(Mat& dst, int n, double scalex = 1, double scaley = 1, double originx = -1, double originy = -1)
@@ -161,6 +124,8 @@ void Mandelbrot_fast_threads(Mat& dst, int n, double scalex = 1, double scaley =
 	{
 		t[i].join();
 	}
+
+	std::cout << "Threaded Implementation: ";
 }
 
 void Mandelbrot_parallel_for(Mat& dst, int n, double scalex = 1, double scaley = 1, double originx = -1, double originy = -1)
@@ -197,6 +162,9 @@ void Mandelbrot_parallel_for(Mat& dst, int n, double scalex = 1, double scaley =
 				dst.ptr<uchar>(i)[j] = (sqrt((double)iteration / n)) * 255;
 		}
 		});
+
+	std::cout << "Parallel_for_ Implementation: ";
+
 }
 
 
@@ -205,18 +173,12 @@ int main()
 	float scalex = 3, scaley = 2, originx = 2, originy = 1;
 	int iter = 500;
 	Mat img(1080, 1920, CV_8U, Scalar(0));
-	Mandelbrot(img, iter, scalex, scaley, originx, originy);
-	imshow("Output", img);
-	waitKey(0);
-	destroyWindow("Output");
 
-	img = Mat(1080, 1920, CV_8U, Scalar(0));
 	Mandelbrot_fast(img, iter, scalex, scaley, originx, originy);
 	imshow("Output", img);
 	waitKey(0);
 	destroyWindow("Output");
 
-	
 	img = Mat(1080, 1920, CV_8U, Scalar(0));
 	Mandelbrot_fast_threads(img, iter, scalex, scaley, originx, originy);
 	imshow("Output", img);

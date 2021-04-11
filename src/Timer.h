@@ -6,7 +6,7 @@ using namespace std;
 
 struct Timer
 {
-	std::chrono::steady_clock::time_point start; 
+	std::chrono::system_clock::time_point start; 
 	float mtplr;
 	static int cnt;
 
@@ -38,5 +38,5 @@ struct Timer
 
 };
 
-//int Timer::cnt = 0;
+int Timer::cnt = 0;
 
