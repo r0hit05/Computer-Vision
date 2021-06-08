@@ -1,193 +1,165 @@
 #include <iostream>
-#include <thread>
 
 #include <opencv2/core.hpp>
 #include <opencv2/highgui.hpp>
-#include <opencv2/imgcodecs.hpp>
+#include <opencv2/imgproc.hpp>
 using namespace cv;
 
 #include "Timer.h"
 
 const int TIME = 1;
-void draw_coordinate(Mat& dst, double scalex = 1, double scaley = 1, double originx = -1, double originy = -1)
+int res_x = 1920, res_y = 1080, scale = 50, originx = res_x/2, originy = res_y/2, iterations = 200;
+Mat img(res_y, res_x, CV_8UC3, Scalar(0, 0, 0));
+
+void drawMandelbrot();
+
+void callback(int event, int x, int y, int flags, void* param)
 {
-	Timer time(TIME);
-	if (originx == -1)
-		originx = scalex / 2;
-	if (originy == -1)
-		originy = scaley / 2;
-
-	int rows = dst.rows, cols = dst.cols;
-	double xmul = scalex / cols, ymul = scaley / rows;
-
-	int originx_screen = originx / xmul, originy_screen = originy / ymul;
-	for (int i = 0; i < rows; i++)
+	static int flag = 0;
+	static int xi, yi, og_x, og_y;
+	if (event == EVENT_LBUTTONDOWN)
 	{
-		dst.at<uchar>(i, originx_screen) = 255;
-	}
-	for (int i = 0; i < cols; i++)
-	{
-		dst.at<uchar>(originy_screen, i) = 255;
+		flag = 1;
+		xi = x;
+		yi = y;
+		og_x = originx;
+		og_y = originy;
 	}
 
-}
-
-
-void Mandelbrot_fast(Mat& dst, int n, double scalex = 1, double scaley = 1, double originx = -1, double originy = -1)
-{
-	Timer time(TIME);
-	if (originx == -1)
-		originx = scalex / 2;
-	if (originy == -1)
-		originy = scaley / 2;
-
-	int rows = dst.rows, cols = dst.cols;
-	double xmul = scalex / (double)cols, ymul = scaley / (double)rows;
-
-
-
-	for (int r = 0; r < rows * cols; r++)
+	if (event == EVENT_LBUTTONUP)
 	{
-		int i = r / cols, j = r % cols;
-
-		double y0 = ((double)i * ymul) - originy;
-		double x0 = ((double)j * xmul) - originx;
-
-		std::complex<double> z(0, 0);
-		std::complex<double> c(x0, y0);
-		int iteration = 0;
-		while (z.real()*z.real() + z.imag()*z.imag() < 4 && iteration != n)
-		{
-			z = z * z + c;
-			iteration++;
-		}
-
-		//std::cout << r << " " << std::endl;
-		if (iteration == n)
-			dst.ptr<uchar>(i)[j] = 0;
-		else
-			dst.ptr<uchar>(i)[j] = (sqrt((double)iteration / n)) * 255;
+		flag = 0;
 	}
-
-	std::cout << "Naive Implementation: ";
 	
+	if (flag == 1)
+	{
+		originx = og_x;
+		originy = og_y;
+		originx = og_x + (x - xi);
+		originy = og_y + (y - yi);
+		drawMandelbrot();
+ 	}
+	imshow("Output", img);
+
 }
 
-void Mandelbrot_fast_threads(Mat& dst, int n, double scalex = 1, double scaley = 1, double originx = -1, double originy = -1)
+const int mx_iterations = 2000;
+Vec3b color[mx_iterations][mx_iterations];
+
+void precompute()
 {
-	Timer time(TIME);
-	if (originx == -1)
-		originx = scalex / 2;
-	if (originy == -1)
-		originy = scaley / 2;
-
-	int rows = dst.rows, cols = dst.cols;
-	double xmul = scalex / (double)cols, ymul = scaley / (double)rows;
-
-	const int n_threads = 56;
-	int r_max =rows*cols, r_begin = 0, r_interval = r_max / n_threads, r_end = r_interval;
-
-	std::thread t[n_threads];
-
-	for (int i = 0; i < n_threads; i++)
+	for (int i = 100; i < mx_iterations; i++)
 	{
-		t[i] = std::thread([&](int r_b, int r_e) {
-			for (int r = r_b; r <= r_e; r++)
+		for (int j = 0; j < mx_iterations; j++)
+		{
+			double pos = (double)j / i;
+			if (pos <= 0.16)
 			{
-				int i = r / cols, j = r % cols;
-
-				double y0 = ((double)i * ymul) - originy;
-				double x0 = ((double)j * xmul) - originx;
-
-				std::complex<double> z(0, 0);
-				std::complex<double> c(x0, y0);
-				int iteration = 0;
-				while (z.real() * z.real() + z.imag() * z.imag() < 4 && iteration != n)
-				{
-					z = z * z + c;
-					iteration++;
-				}
-
-				if (iteration == n)
-					dst.ptr<uchar>(i)[j] = 0;
-				else
-					dst.ptr<uchar>(i)[j] = (sqrt((double)iteration / n)) * 255;
+				color[i][j][2] = 32 * (pos / 0.16);
+				color[i][j][1] = 100 * (pos / 0.16) + 7;
+				color[i][j][0] = 103 * (pos / 0.16) + 100;
 			}
-			}, r_begin, r_end);
-		
-		r_begin = r_end + 1;
-		r_end += r_interval + 1;
-		r_end = min(r_max - 1, r_end);
+			else if (pos <= .42)
+			{
+				color[i][j][2] = 205 * ((pos - 0.16) / (0.42 - 0.16)) + 32;
+				color[i][j][1] = 148 * ((pos - 0.16)/ (0.42 - 0.16)) + 107;
+				color[i][j][0] = 52 * ((pos - 0.16)/ (0.42 - 0.16)) + 203;
+			}
+			else if (pos <= .6425)
+			{
+				color[i][j][2] = 18 * ((pos - 0.42) / (0.6425 - 0.42)) + 237;
+				color[i][j][1] = -85 * ((pos - 0.42)/ (0.6425 - 0.42)) + 255;
+				color[i][j][0] = -255 * ((pos - 0.42) / (0.6425 - 0.42)) + 255;
+			}
+			else if (pos <= 0.8575)
+			{
+				color[i][j][2] = -255 * ((pos - 0.6425) / (0.8575 - 0.6425)) + 255;
+				color[i][j][1] = -168 * ((pos - 0.6425)/ (0.8575 - 0.6425)) + 170;
+				color[i][j][0] = 0;
+			}
+		}
 	}
-
-	for (int i = 0; i < n_threads; i++)
-	{
-		t[i].join();
-	}
-
-	std::cout << "Threaded Implementation: ";
 }
 
-void Mandelbrot_parallel_for(Mat& dst, int n, double scalex = 1, double scaley = 1, double originx = -1, double originy = -1)
+class ParallelMandelbrot : public ParallelLoopBody
 {
-	Timer time(TIME);
-	if (originx == -1)
-		originx = scalex / 2;
-	if (originy == -1)
-		originy = scaley / 2;
-
-	int rows = dst.rows, cols = dst.cols;
-	double xmul = scalex / (double)cols, ymul = scaley / (double)rows;
-
-	parallel_for_(Range(0, rows * cols), [&](const Range& range) {
+public:
+	virtual void operator()(const Range& range) const CV_OVERRIDE
+	{
+		
 		for (int r = range.start; r < range.end; r++)
 		{
-			int i = r / cols, j = r % cols;
-
-			double y0 = ((double)i * ymul) - originy;
-			double x0 = ((double)j * xmul) - originx;
-
-			std::complex<double> z(0, 0);
-			std::complex<double> c(x0, y0);
-			int iteration = 0;
-			while (z.real() * z.real() + z.imag() * z.imag() < 4 && iteration != n)
+			int i = r / res_x, j = r % res_x;
+			double cx = (double)(j - originx)/scale, cy = (double)(originy - i)/scale, x = 0, y = 0;
+			int n = 0;
+			while (n != iterations && (x * x + y * y) <= 4)
 			{
-				z = z * z + c;
-				iteration++;
+				double x_temp = x * x - y * y + cx;
+				double y_temp = 2 * x * y + cy;
+				x = x_temp;
+				y = y_temp;
+				n++;
 			}
 
-			if (iteration == n)
-				dst.ptr<uchar>(i)[j] = 0;
-			else
-				dst.ptr<uchar>(i)[j] = (sqrt((double)iteration / n)) * 255;
+			
+			img.ptr<uchar>(i)[j*3] =  color[iterations][n][0];
+			img.ptr<uchar>(i)[j*3 + 1] =  color[iterations][n][1];
+			img.ptr<uchar>(i)[j*3 + 2] =  color[iterations][n][2];
 		}
-		});
+	}
+};
 
-	std::cout << "Parallel_for_ Implementation: ";
-
+void drawMandelbrot()
+{
+	Timer timer(TIME);
+	img = Mat(res_y, res_x, CV_8UC3, Scalar(0, 0, 0));
+	ParallelMandelbrot obj;
+	parallel_for_(Range(0, res_x * res_y), obj);
 }
+
+
 
 
 int main()
 {
-	float scalex = 3, scaley = 2, originx = 2, originy = 1;
-	int iter = 500;
-	Mat img(1080, 1920, CV_8U, Scalar(0));
-
-	Mandelbrot_fast(img, iter, scalex, scaley, originx, originy);
+	namedWindow("Output");
+	int q = 0;
+	precompute();
+	drawMandelbrot();
 	imshow("Output", img);
-	waitKey(0);
-	destroyWindow("Output");
-
-	img = Mat(1080, 1920, CV_8U, Scalar(0));
-	Mandelbrot_fast_threads(img, iter, scalex, scaley, originx, originy);
-	imshow("Output", img);
-	waitKey(0);
-	destroyWindow("Output");
-	
-	img = Mat(1080, 1920, CV_8U, Scalar(0));
-	Mandelbrot_parallel_for(img, iter, scalex, scaley, originx, originy);
-	imshow("Output", img);
-	waitKey(0);
+	setMouseCallback("Output", callback);
+	do
+	{
+		if (q == 'q')
+		{
+			originx = res_x / 2 - (scale + 0.1*scale)*((double)res_x / 2 - originx) / scale;
+			originy = res_y / 2 + (scale + 0.1*scale) * (originy - (double)res_y / 2) / scale;
+			scale += 0.1*scale;
+			drawMandelbrot();
+			imshow("Output", img);
+		}
+		else if (q == 'e')
+		{
+			originx = res_x / 2 - (scale - 0.1*scale) * ((double)res_x / 2 - originx) / scale;
+			originy = res_y / 2 + (scale - 0.1*scale) * (originy - (double)res_y / 2) / scale;
+			scale -= 0.1*scale;
+			drawMandelbrot();
+			imshow("Output", img);
+		}
+		else if (q == 'n')
+		{
+			iterations -= 15;
+			drawMandelbrot();
+			imshow("Output", img);
+		}
+		else if (q == 'm')
+		{
+			iterations += 15;
+			drawMandelbrot();
+			imshow("Output", img);
+		}
+		cout << "Current Values: \nScale: " << scale << "\nIterations: " << iterations << "\nOrigin: (" << originx << ", " << originy << ")\n";
+		q = waitKey(0);
+	} while (q != 13);
 	return 0;
 }
