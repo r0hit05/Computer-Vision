@@ -363,7 +363,6 @@ MigrationBackup/
 FodyWeavers.xsd
 
 # system specific files
-src/.vscode/
 src/parallel/.vscode/
 
 # Makefiles for linux (system specific)

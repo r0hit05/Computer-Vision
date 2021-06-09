@@ -8,7 +8,8 @@ using namespace cv;
 #include "Timer.h"
 
 const int TIME = 1;
-int res_x = 1920, res_y = 1080, scale = 50, originx = res_x/2, originy = res_y/2, iterations = 200;
+const int res_x = 1920, res_y = 1080;
+long long int scale = 50, originx = res_x/2, originy = res_y/2, iterations = 200;
 Mat img(res_y, res_x, CV_8UC3, Scalar(0, 0, 0));
 
 void drawMandelbrot();
