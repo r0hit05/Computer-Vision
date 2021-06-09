@@ -17,7 +17,7 @@ The console window outputs the generation time in seconds. It also captures the 
 ### Billiards 
 The program takes an image of a white ball representing the initial cue ball position and a red line representing the direction of the cue stick. On running the program, based on the image, the cue ball moves around the table. We can input the number of collisions after which the program terminates.
 
-
+---
 
 ## Build
 
@@ -30,7 +30,6 @@ Currently it's just opencv libraries and header files and the Timer.h file for s
 
     g++ filename.cpp -I/path/headerfiles/ -L/path/library/directory -llib1 -llib2 -llib3 
    
-
 
  > ### Using IDEs:
  > Look into the corresponding IDE documentation to find out how to add include paths and link.
