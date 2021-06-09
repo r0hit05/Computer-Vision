@@ -362,5 +362,19 @@ MigrationBackup/
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
 
+# system specific files
 src/.vscode/
+src/parallel/.vscode/
+
+# Makefiles for linux (system specific)
+src/parallel/Makefile
+src/Makefile
+src/misc/Makefile
+src/simd/Makefile
+
+# Binary executables
+*.o
+*.exe
+
+
 
